@@ -152,4 +152,4 @@ d) Afficher les noms et prénoms, le rôle des acteurs/actrices et le titre des 
         AND mg.id_movie=m.id
         AND r.id_cast=casts.id
         AND YEAR(m.release_date) >= 2018
-        ORDER BY Movie, casts.lastname, casts.firstname, Role
+    ORDER BY Movie, casts.lastname, casts.firstname, Role
