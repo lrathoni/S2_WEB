@@ -1,0 +1,155 @@
+RATHONIE Line
+
+# 02 FIL ROUGE 
+
+
+1) Sélections simples
+
+
+a)  Afficher tous les métiers dans la base de données.
+
+        SELECT * FROM casts
+
+
+b)  Afficher les personnes s’appelant “Christopher”, trié dans l’ordre alphabétique
+
+        SELECT * FROM casts WHERE firstname="Christopher"
+
+
+c)  Afficher toutes les personnes décédées.
+       
+        SELECT *, death_year FROM casts WHERE death_year<>"NULL" 
+
+
+d)  Afficher toutes les personnes ayant entre 40 et 50 ans. Triez selon l’âge de manière
+    décroissante.
+      
+        SELECT *, death_year FROM casts WHERE YEAR(CURDATE())-birth_year BETWEEN 40 AND 50 ORDER BY birth_year DESC 
+
+
+e)  Afficher la personne vivante la plus âgée de la base de donnée.
+
+        SELECT * FROM casts WHERE birth_year = (SELECT MIN(birth_year) FROM casts WHERE death_year IS NULL)
+
+
+f)  Afficher les personnes ayant “aka” dans son nom de famille. Tri par nom de famille.
+     
+      SELECT * FROM casts WHERE lastname LIKE "%aka%" ORDER BY lastname
+
+
+
+2) JOINTURES
+
+
+a)  Afficher les genres du film “Interstellar” dans l’ordre alphabétique.
+      
+        SELECT name
+        FROM genres, moviegenres, movies
+        WHERE movies.title="Interstellar" 
+            AND movies.id=moviegenres.id_movie
+            AND moviegenres.id_genre=genres.id
+        ORDER BY name
+
+
+b)  Afficher le titre et la date de sortie du film du pays “United States of America” le plus
+récente.
+
+        SELECT m.title, m.release_date 
+        FROM movies m, moviecountries, countries 
+        WHERE moviecountries.code_country=countries.code 
+            AND m.id=moviecountries.id_movie
+            AND countries.name='United States of America'
+        ORDER BY m.release_date DESC LIMIT 1 
+
+
+c)  Afficher les comédies américaines du plus ancien au plus récent.
+
+        SELECT m.title, m.release_date 
+        FROM movies m, moviegenres mg, genres g, moviecountries mc, countries c 
+        WHERE g.name='Comedy' 
+            AND g.id=mg.id_genre 
+            AND m.id=mg.id_movie 
+            AND mc.code_country='US' 
+            AND c.code=mc.code_country 
+            AND mc.id_movie=m.id
+        ORDER BY m.release_date ASC 
+
+
+d)  Afficher tous les noms et prénoms des réals de films anglais (United Kingdom) et
+néo-zélandais (New Zealand). Le résultat doit afficher exactement comme ceci:
+  
+    SELECT DISTINCT CONCAT ( casts.lastname, ' ', casts.firstname ) as Directors
+    FROM casts, jobs, roles, moviecountries mc, countries c
+    WHERE c.code IN ('GB','NZ')
+        AND c.code=mc.code_country
+        AND casts.id=roles.id_cast
+        AND jobs.name='director'
+        AND roles.id_job=jobs.id
+        AND mc.id_movie=roles.id_movie
+    ORDER BY Directors
+
+
+e)  Afficher les rôles et les titres des films qu’Antonin Leuret a joués. Tri par film.
+       
+        SELECT roles.role as Role, m.title as Movie
+        FROM roles, movies m, casts
+        WHERE casts.firstname='Antonin'
+            AND casts.lastname='Leuret'
+            AND roles.id_cast=casts.id
+            AND roles.id_movie=m.id
+        ORDER BY m.title
+
+
+
+3) REQUETES COMPLEXES
+
+
+a)  Afficher le pays et le nombre de personnes de la nationalité de chaque pays. Tri par ordre
+décroissant.
+
+        SELECT c.name AS Country, COUNT(casts.id) AS "Number of cast"
+        FROM countries c, casts, castnationalities cn
+        WHERE c.code=cn.code_country
+            AND casts.id=cn.id_cast
+        GROUP BY c.name
+        ORDER BY 2 DESC
+
+
+b)  Afficher le nombre de films ayant “Voix” dans la liste des acteurs.
+     
+        SELECT COUNT(jobs.id) AS "Number movies"
+        FROM jobs, roles
+        WHERE jobs.name='actor'
+            AND roles.role LIKE "%Voix%"
+
+
+c)  Afficher le nom du film (ainsi que le nom du réal) issu du plus grand nombre de pays.
+Vous devez afficher le résultat comme ci-dessous.
+   
+    SELECT m.title AS MOVIE, CONCAT(casts.firstname, " ", casts.lastname) as DIRECTOR
+    FROM movies m, casts, jobs, roles
+    WHERE m.id = (SELECT id_movie 
+                FROM `moviecountries` 
+                GROUP BY id_movie
+                ORDER BY COUNT(id_movie)  DESC LIMIT 1)
+        AND roles.id_movie=m.id
+        AND casts.id = roles.id_cast
+        AND jobs.name='director'
+        AND jobs.id=roles.id_job
+
+
+d) Afficher les noms et prénoms, le rôle des acteurs/actrices et le titre des films de genre
+“Drama” ou “Romance” de 2018 et plus, triés selon le titre, puis le nom, prénom et le rôle.
+
+    SELECT DISTINCT CONCAT( casts.firstname, ' ', casts.lastname) AS Actor, r.role AS Role, m.title AS Movie
+    FROM casts, roles r, movies m, genres g, moviegenres mg, jobs
+    WHERE g.name IN ('Romance','Drama')
+        AND g.id=mg.id_genre
+        AND jobs.name='actor'
+        AND jobs.id=r.id_job
+        AND r.id_movie=m.id
+        AND g.id=mg.id_genre
+        AND mg.id_movie=m.id
+        AND r.id_cast=casts.id
+        AND YEAR(m.release_date) >= 2018
+        ORDER BY Movie, casts.lastname, casts.firstname, Role
